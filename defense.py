@@ -48,7 +48,29 @@ class DefenseSystem() :
 
 
 
-    def Krum(self):
+    def Krum(self, net):
+        params = self.grads.reshape(0,-1) #n_clients*grad_size 
+        _, grad_size = params.shape
+        distances = torch.tensor(self.n_clients, self.n_clients-1)
+        for i in range(self.n_clients):
+            for j in range(self.n_clients):
+                if i!=j:
+                    distances[i][j]+=torch.cdist(params[i], params[j], 2) #Pour chaque param[i], on calcule la 2-norme distance entre les 2 
+                    #distances[i][j] = distance entre gradient du client 1 = g1 et g2 
+        sorted_distances = distances.sort(axis=0)
+        closest_neighbors = self.n_clients - self.cmax - 2 
+
+        closest = torch.sum(sorted_distances[:,:closest_neighbors], axis=0) #n_clients*1
+
+        selected_grad = torch.argmax(closest, axis=1) #retourne l'indice du gradient à choisir 
+
+        with torch.no_grad():
+            global_param = net.parameters()
+            for idx, _ in enumerate(global_param) : 
+                if global_param[idx].requires_grad == True : 
+                    global_param[idx] +=  self.lr*params[selected_grad][idx]
+        return net 
+
     
     def Bulyan(self): 
         
