@@ -15,7 +15,8 @@ class DefenseSystem() :
         # /le nombre de data sample for each client, spécifique à SGD 
 
         n = self.n_clients 
-        params = torch.stack([torch.cat([xx for xx in x], dim=0) for x in self.grads])
+        params = self.grads.reshape(0,-1)
+        #torch.stack([torch.cat([xx for xx in x], dim=0) for x in self.grads])
         #size = n_clients*size_grad
         params = attack(params)
 
@@ -24,10 +25,10 @@ class DefenseSystem() :
 
         ## TODO : weight by number of data sample each client holds 
         with torch.no_grad():
-            idx = 0 
-            param = net.parameters()
-            if param[idx].requires_grad == True : 
-                param[idx] +=  self.lr*params_weighted[idx]
+            global_param = net.parameters()
+            for idx, _ in enumerate(global_param) : 
+                if global_param[idx].requires_grad == True : 
+                    global_param[idx] +=  self.lr*params_weighted[idx]
         return net 
 
     
