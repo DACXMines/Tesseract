@@ -212,7 +212,42 @@ class DefenseSystem() :
                     global_param[idx] +=  self.lr*g0[idx]
         return net 
 
-'''
-    def tesseract(self) : 
+    def tesseract(self, net, prev_direction, reputation) : 
+        params = self.grads.reshape(0,-1) #n_clients*grad_size
+
+        flip_clients = torch.zeros(self.n_clients) #flip-score vector
+
+        #Computing flip-score
+        for i in range (self.n_clients) :
+            client_compare = torch.eq(torch.sign(params[i]), torch.sign(prev_direction)) #where the client goes in the same direction as the model
+            flip_clients[i] = torch.matmul(torch.square(params[i]), torch.where(client_compare, 0, 1))
+        
+        #Update the reputation scores
+        penalty = 1.0 - 2*self.cmax/len(params) 
+        reward = 2*self.cmax/len(params)
+        argsorted = torch.argsort(flip_clients)
+        if (self.cmax > 0):
+            reputation[argsorted[self.cmax:-self.cmax]] = reputation[argsorted[self.cmax:-self.cmax]] + reward
+            reputation[argsorted[:self.cmax]] = reputation[argsorted[:self.cmax]] - penalty
+            reputation[argsorted[-self.cmax:]] = reputation[argsorted[-self.cmax:]] - penalty  
+        argsorted = torch.argsort(reputation)
+
+        #Normalize reputations weights
+        weights = torch.exp(reputation)/torch.sum(torch.exp(reputation))
+
+        #Aggregate gradients
+        tesseract_params = torch.matmul(torch.transpose(params, 0, 1), weights.reshape(-1,1))
+
+        #Update global direction
+        global_direction = torch.sign(tesseract_params)
+
+        #Update global model
+        with torch.no_grad():
+            global_param = net.parameters()
+            for idx, _ in enumerate(global_param) : 
+                if global_param[idx].requires_grad == True : 
+                    global_param[idx] +=  self.lr*tesseract_params[idx]
+
+        return net, global_direction, reputation
     
-'''   
+   
