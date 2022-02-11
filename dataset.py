@@ -18,9 +18,9 @@ batch_size = params['batch_size']
 
 
 class DataPipeline :
-    def __init__(self, dataset_name : str, batch_size : int) -> None:
-        self.batch_size = batch_size
-        self.dataset_name = dataset_name
+    def __init__(self, config) -> None:
+        self.batch_size = config["batch_size"]
+        self.dataset_name = config["dataset_name"]
 
         if self.dataset_name == 'FashionMNIST' :
             self.training_data = datasets.FashionMNIST(

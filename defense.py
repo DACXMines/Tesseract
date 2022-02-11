@@ -13,6 +13,23 @@ class DefenseSystem() :
         self.n_clients, self.size_grad = grads.size()
         self.lr = lr 
         self.cmax = cmax
+    
+    def aggregate(self, config, net) :
+        aggregation_model = config["aggregation_model"]
+        if aggregation_model == "fed_segd" :
+            return self.fed_sgd(net, None, None)
+        elif aggregation_model == "trimmed_mean" :
+            return self.Trimmed_mean(net, None)
+        elif aggregation_model == "krum" :
+            return self.Krum(net, None)
+        elif aggregation_model == "bulyan" :
+            return self.bulyan(net, None)
+        elif aggregation_model == "foolsgold" :
+            return self.foolsgold(net, None)
+        elif aggregation_model == "faba" :
+            return self.faba(net, None)
+        elif aggregation_model == "tesseract" :
+            return self.tesseract(net, None)
 
     def fed_sgd(self, net, weights, attack): #weights c'est dans le main et c'est 
         # /le nombre de data sample for each client, spécifique à SGD 
@@ -38,17 +55,14 @@ class DefenseSystem() :
         _, L = params.shape
         sorted_params = torch.sort(params, axis=0)
 
-        trimmed_mean = torch.mean(sorted_params[:,self.cmax:L-self.cmax], axis=0) #n_clients*(grad_size-2*cmax)
-        grad_final_update = torch.mean(trimmed_mean[:,:], axis=1) #1*(grad_size-2*cmax)
+        trimmed_mean = torch.mean(sorted_params[self.cmax:L-self.cmax,:], axis=0) #1*(grad_size)
 
         with torch.no_grad():
             global_param = net.parameters()
             for idx, _ in enumerate(global_param) : 
                 if global_param[idx].requires_grad == True : 
-                    global_param[idx] +=  self.lr*grad_final_update[idx]
+                    global_param[idx] +=  self.lr*trimmed_mean[idx]
         return net 
-
-
 
     def Krum(self, net):
         params = self.grads.reshape(0,-1) #n_clients*grad_size 
@@ -73,7 +87,6 @@ class DefenseSystem() :
                     global_param[idx] +=  self.lr*params[selected_grad][idx]
         return net 
 
-    
     def Bulyan (self, net): 
         #step 1 : chose t = n_clients - 2 * cmax gradients according to Krum
 
@@ -199,7 +212,7 @@ class DefenseSystem() :
                     global_param[idx] +=  self.lr*g0[idx]
         return net 
 
-
+'''
     def tesseract(self) : 
     
-    
+'''   
