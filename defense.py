@@ -33,6 +33,7 @@ class DefenseSystem() :
     
     def Trimmed_mean(self, net, attack):
         params = self.grads.reshape(0,-1) #n_clients*grad_size 
+        params = attack(self.lr, params, self.cmax)
         _, L = params.shape
         sorted_params = torch.sort(params, axis=0)
 
@@ -48,8 +49,9 @@ class DefenseSystem() :
 
 
 
-    def Krum(self, net):
+    def Krum(self, net, attack):
         params = self.grads.reshape(0,-1) #n_clients*grad_size 
+        params = attack(self.lr, params, self.cmax)
         _, grad_size = params.shape
         distances = torch.tensor(self.n_clients, self.n_clients-1)
         for i in range(self.n_clients):
@@ -69,12 +71,36 @@ class DefenseSystem() :
             for idx, _ in enumerate(global_param) : 
                 if global_param[idx].requires_grad == True : 
                     global_param[idx] +=  self.lr*params[selected_grad][idx]
-        return net 
+        return net, closest 
 
     
-    def Bulyan(self): 
+    def Bulyan(self, net, nb_nets_sel, attack): 
+
+        params = self.grads.reshape(0,-1)
+        params = attack(self.lr, params, self.cmax)
+
+        #First, run krum to select a specified number of models 
+        _, closest = self.krum(net)
+        selected_grad = torch.argmax(closest, axis=1) #retourne l'indice du gradient à choisir 
+        grads = torch.tensor(nb_nets_sel)
         
-    
+        for i in range(nb_nets_sel):
+            idx = torch.argmax(closest, axis=1)
+            grads[i] = params[idx]
+            closest = torch.cat(closest[:idx-1],closest[idx+1:],axis=1) 
+        
+        _, L = params.shape
+        sorted_params = torch.sort(grads, axis=0)
+        trimmed_mean = torch.mean(sorted_params[:,self.cmax:L-self.cmax], axis=0) #n_clients*1
+        grad_final_update = torch.mean(trimmed_mean[:,:], axis=1) #scalarg
+
+        with torch.no_grad():
+            global_param = net.parameters()
+            for idx, _ in enumerate(global_param) : 
+                if global_param[idx].requires_grad == True : 
+                    global_param[idx] +=  self.lr*grad_final_update[idx]
+        return net 
+
     def foolsgold(self) : 
         
     def faba(self):  
