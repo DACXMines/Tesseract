@@ -19,11 +19,6 @@ def full_trim_attack(lr, params, c_max):
         final_params[i] = -(param_directions * ((direction * param_directions > 0) * noise + (direction * param_directions < 0) * noise))
     return final_params
 
-def adaptive_trim_attack(lr, params, c_max, fs_max, fs_min, old_direction, n):
-    return None
-
-def adaptive_krum_attack(le, params, c_max, fs_max, fs_min, old_direction, n):
-    return None
 
 def lambda_max(c, params, device):
     '''
@@ -76,9 +71,10 @@ def full_krum_attack(lr, params, c_max):
     if (final_lambda>0):
         final_params[0] = -(direction*final_lambda)
         for i in range(c_max):
-            noise = torch
+            noise = torch.FloatTensor(1, len(params[0])).uniform_(-noise_coef, noise_coef)
+            params[i] = params[0] + noise
 
-    return None
+    return final_params
 
 def local_krum(params, c):
     n = len(params)
