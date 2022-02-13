@@ -4,14 +4,12 @@ from torchvision import datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import yaml
-import tensorflow as tf
 
 '''
 with open(r'cofig.yaml') as file:
     # The FullLoader parameter handles the conversion from YAML
     # scalar values to Python the dictionary format
     params = yaml.load(file, Loader=yaml.FullLoader)
-
 dataset = params['dataset']
 batch_size = params['batch_size']
 '''
@@ -89,6 +87,4 @@ class DataPipeline :
 
 
         self.train_dataloader = DataLoader(self.training_data, batch_size=self.batch_size, shuffle=True)
-        self.test_dataloader = DataLoader(self.test_data, batch_size=self.batch_size, shuffle=True)
-            
-
+        self.test_dataloader = DataLoader(self.test_data, batch_size=self.batch_size, shuffle=False)
