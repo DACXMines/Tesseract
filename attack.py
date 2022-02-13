@@ -49,8 +49,21 @@ def lambda_max(c, params, device):
     # On concatène les deux matrices de distribution
     return (math.sqrt(scale/(n-2*c-1))*min_sane_dist) + math.sqrt(scale)*max_global_dist
 
-def find_lambda():
-    return None
+def find_lambda(current_lambda, s, params, c):
+    ### Permits to eliminate all thhe noise
+    if (current_lambda <= 0.00001):
+        return 0.0
+    else:
+        final_params = params.detach().clone()
+        ### Invert all gradientd
+        final_params[0] = -(current_lambda)*s
+    for i in range(0,c):
+        final_params[c] = current_lambda[0]
+    selected_client = local_krum(params=params, c=c)
+    if selected_client <=c:
+        return current_lambda
+    else :
+        return find_lambda(current_lambda*0.5, s, params, c)
 
 def full_krum_attack(lr, params, c_max):
     if c_max == 0:
@@ -58,14 +71,27 @@ def full_krum_attack(lr, params, c_max):
     final_params = deepcopy(params)
     noise_coef = 0.0001/c_max
     direction = torch.sign(torch.sum(-params, axis=0))
-    lambda_mx = lambda_max(c_max, params)
-    final_lambda = find_lambda()
+    max_lambda = lambda_max(c_max, params)
+    final_lambda = find_lambda(max_lambda, direction, params, c_max)
     if (final_lambda>0):
         final_params[0] = -(direction*final_lambda)
         for i in range(c_max):
             noise = torch
 
     return None
+
+def local_krum(params, c):
+    n = len(params)
+    ben = n - c - 1
+    dist = torch.zeros((n,n))
+    for i in range (0, n):
+        for j in range(0, i):
+            dist[i][j] = torch.norm(params[i] - params[j])
+            dist[j][i] = dist[i][j]
+    sorted_dist = torch.sort(dist)
+    sum_dist = torch.sum(sorted_dist[0][:,:ben], axis=1)
+    model_selected = torch.argmin(sum_dist).item()
+    return model_selected
 
 
 
