@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn 
 import numpy as np
 from copy import deepcopy
+import math
 
 ### In all attacks, we suppose that the c_max first indexes refers to the parameters of malicious clients.
 
@@ -24,7 +25,7 @@ def adaptive_trim_attack(lr, params, c_max, fs_max, fs_min, old_direction, n):
 def adaptive_krum_attack(le, params, c_max, fs_max, fs_min, old_direction, n):
     return None
 
-def lambda_max(c, params):
+def lambda_max(c, params, device):
     '''
     Compute noisy lambda
     :param c: number of malicious clients
@@ -38,8 +39,15 @@ def lambda_max(c, params):
             dist[i][j] = torch.norm(params[i] - params[j])
             dist[j][i] = dist[i][j]
     sane_dist = dist[c:][c:]
-    min_sane_dist = torch.min(dist, axis=0)
-    return None
+    min_sane_dist = torch.min(sane_dist, axis=0).item()
+    global_dist = torch.zeros(n-c).to(device)
+    #On calque la distribution des gradients pour les clients malicious sur celle des clients sains
+    for i in range(c, n):
+        global_dist[i-c] = torch.norm(params[i])
+    max_global_dist = torch.max(global_dist).item()
+    scale = 1.0/(len(params[0]))
+    # On concatène les deux matrices de distribution
+    return (math.sqrt(scale/(n-2*c-1))*min_sane_dist) + math.sqrt(scale)*max_global_dist
 
 def find_lambda():
     return None
@@ -50,7 +58,7 @@ def full_krum_attack(lr, params, c_max):
     final_params = deepcopy(params)
     noise_coef = 0.0001/c_max
     direction = torch.sign(torch.sum(-params, axis=0))
-    lambda_max = lambda_max(c_max, params)
+    lambda_mx = lambda_max(c_max, params)
     final_lambda = find_lambda()
     if (final_lambda>0):
         final_params[0] = -(direction*final_lambda)
