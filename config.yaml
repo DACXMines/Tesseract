@@ -6,4 +6,5 @@ cmax: 2
 pretrained: True
 model_name: CNN
 lr: 0.01
-aggregation_model: bulyan
+aggregation_model: tesseract
+attack: data_poisoning

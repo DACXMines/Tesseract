@@ -7,7 +7,7 @@ import yaml
 import gc
 import copy
 import matplotlib.pyplot as plt
-
+from torch.utils.tensorboard import SummaryWriter
 
 from attack import Attack
 from dataset import DataPipeline
@@ -26,6 +26,8 @@ def main(config) :
     nb_clients = config['nb_clients']
     n_epochs = config["n_epochs"]
     cmax = config["cmax"]
+    writer = SummaryWriter(log_dir=f"dataset_"+config["dataset_name"]+"_attack_"+config["attack"]+
+        "_defense_"+config["aggregation_model"]+"_cmax_"+str(cmax)+"_nbclients_"+str(nb_clients))
 
     #Data : load and distribute amongst clients
     data_pipeline = DataPipeline(config)
@@ -40,6 +42,11 @@ def main(config) :
     # concatenate the data for each clent
     client_train_data = [(torch.stack(client_data, dim=0)).squeeze(0) for client_data in client_train_data] 
     client_train_label = [(torch.stack(client_label, dim=0)).squeeze(0) for client_label in client_train_label] 
+
+    if config["attack"] == "data_poisoning" :
+        for i in range (cmax) :
+            idx = torch.randperm(client_train_label[i].nelement())
+            client_train_label[i] = client_train_label[i].view(-1)[idx].view(client_train_label[i].size())
 
     test_dataloader = data_pipeline.test_dataloader
 
@@ -124,6 +131,15 @@ def main(config) :
                 correct += (predicted == labels).sum().item()
             test_acc[epoch] = correct/total                
             print ('Iteration: %d, test_acc: %f' %(epoch, test_acc[epoch]))
+
+        writer.add_scalar('test/accuracy', test_acc[epoch], epoch)
+
+
+        for i in range (cmax) :
+            writer.add_scalar('reputation/attacker_'+str(i), reputation[i], epoch)
+        for i in range (cmax, nb_clients) :
+            writer.add_scalar('reputation/client_'+str(i), reputation[i], epoch)
+        writer.add_scalar('test/accuracy', test_acc[epoch], epoch)
         
 if __name__ == '__main__' :
     config = load_conf("config.yaml")
