@@ -60,7 +60,7 @@ def find_lambda(current_lambda, s, params, c):
     else :
         return find_lambda(current_lambda*0.5, s, params, c)
 
-def full_krum_attack(lr, params, c_max):
+def full_krum_attack(params, c_max):
     if c_max == 0:
         return params
     final_params = deepcopy(params)
