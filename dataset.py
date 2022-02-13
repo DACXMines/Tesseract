@@ -4,23 +4,21 @@ from torchvision import datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import yaml
-import tensorflow as tf
 
 '''
 with open(r'cofig.yaml') as file:
     # The FullLoader parameter handles the conversion from YAML
     # scalar values to Python the dictionary format
     params = yaml.load(file, Loader=yaml.FullLoader)
-
 dataset = params['dataset']
 batch_size = params['batch_size']
 '''
 
 
 class DataPipeline :
-    def __init__(self, dataset_name : str, batch_size : int) -> None:
-        self.batch_size = batch_size
-        self.dataset_name = dataset_name
+    def __init__(self, config) -> None:
+        self.batch_size = config["batch_size"]
+        self.dataset_name = config["dataset_name"]
 
         if self.dataset_name == 'FashionMNIST' :
             self.training_data = datasets.FashionMNIST(
@@ -89,6 +87,4 @@ class DataPipeline :
 
 
         self.train_dataloader = DataLoader(self.training_data, batch_size=self.batch_size, shuffle=True)
-        self.test_dataloader = DataLoader(self.test_data, batch_size=self.batch_size, shuffle=True)
-            
-
+        self.test_dataloader = DataLoader(self.test_data, batch_size=self.batch_size, shuffle=False)
